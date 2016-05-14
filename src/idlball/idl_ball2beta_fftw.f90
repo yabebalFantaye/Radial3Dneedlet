@@ -146,11 +146,6 @@
   if(mod(nrpix,ntasks).ne.0) nmap_pp(1:mod(nrpix,ntasks)-1)=nmap_pp(1:mod(nrpix,ntasks)-1)+1
   nct_pp = nmap_pp*(1+2*polar)*(lmax+1)*(lmax+1) !data count per each processor
 
-  ALLOCATE(ballmap(0:npix-1,1:1+2*polar,0:nshell))
-
-  open(12,file=trim(adjustl(dir))//'ballmap.unf',status='old',form='unformatted')
-  read(12) ballmap
-  close(12)
 
   sn=nmap_pp(me)
   allocate(alm_TGC_rpp(0:sn-1,1:1+2*polar,0:lmax,0:lmax))
@@ -163,8 +158,15 @@
      print*, 'calling map2alm in MPI distributed loop'
   endif
 
+  ALLOCATE(ballmap(0:npix-1,1:1+2*polar,0:nmap_pp(me)-1))
+
   !in each processor loop over radial shells, and do harmonic expansion
   do ii=0,nmap_pp(me)-1
+
+     open(12,file=trim(adjustl(dir))//'ballmap.unf',status='old',form='unformatted')
+     read(12) ballmap
+     close(12)
+
 
      if (me.ne.0) then
         i=ii+sum(nmap_pp(0:me-1))
@@ -176,8 +178,8 @@
      if (i == 0) then !the 0th layer is an empty map
         alm_TGC=0.
      else
-        if (polar.eq.0) call map2alm(nside, lmax, lmax, ballmap(:,1,i), alm_TGC, zbounds, w8ring_TQU)
-        if (polar.eq.1) call map2alm(nside, lmax, lmax, ballmap(:,:,i), alm_TGC, zbounds, w8ring_TQU)
+        if (polar.eq.0) call map2alm(nside, lmax, lmax, ballmap(:,1,ii), alm_TGC, zbounds, w8ring_TQU)
+        if (polar.eq.1) call map2alm(nside, lmax, lmax, ballmap(:,:,ii), alm_TGC, zbounds, w8ring_TQU)
      endif
      alm_TGC_rpp(ii,:,:,:) = alm_TGC(:,:,:)
 

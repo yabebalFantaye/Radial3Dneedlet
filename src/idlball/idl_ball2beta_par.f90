@@ -150,11 +150,6 @@
   if(mod(nshell,ntasks).ne.0) nmap_pp(1:mod(nshell,ntasks)-1)=nmap_pp(1:mod(nshell,ntasks)-1)+1
   nct_pp = nmap_pp*(lmax+1)*(lmax+1) !*(1+2*polar) !data count per each processor
 
-  ALLOCATE(ballmap(0:npix-1,0:nshell-1))
-
-  open(12,file=trim(adjustl(dir))//'ballmap.unf',status='old',form='unformatted')
-  read(12) ballmap
-  close(12)
 
 
   if  (me == 0) then
@@ -171,8 +166,15 @@
   alm_TGC=CMPLX(0.0_dp, 0.0_dp, KIND=DP)
   alm_TGC_rpp=CMPLX(0.0_dp, 0.0_dp, KIND=DP)
 
+  ALLOCATE(ballmap(0:npix-1,0:nmap_pp(me)-1))
+
   !in each processor loop over radial shells, and do harmonic expansion
   do ii=0,nmap_pp(me)-1
+
+     open(12,file=trim(adjustl(dir))//'ballmap.unf',status='old',form='unformatted')
+     read(12) ballmap
+     close(12)
+
 
      if (me.ne.0) then
         i=ii+sum(nmap_pp(0:me-1))

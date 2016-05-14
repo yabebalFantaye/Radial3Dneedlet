@@ -2,12 +2,13 @@ program idl_ball2almn
 
   !yabebal fantaye 12 Jan 2013
 
+  use parsers
   use healpix_types
   use alm_tools
   use pix_tools
   use extension
   use wav_ball_mod
-
+  
   use healpix_fft
   use misc_utils,only: assert, assert_alloc, fatal_error, wall_clock_time, string, strupcase, brag_openmp
 
@@ -15,7 +16,8 @@ program idl_ball2almn
 
   INCLUDE 'mpif.h'
 
-  INTEGER(I4B) :: nside,npix,lmax,i,j,l,m,polar,large
+  INTEGER(I4B) :: nside,npix,lmax,i,j,l,m,polar,balltype
+  INTEGER(I4B) :: ifirstshell,ilastshell,iwidth
   REAL(DP), DIMENSION(:), ALLOCATABLE :: beam
 
   REAL(DP), DIMENSION(:,:), ALLOCATABLE :: w8ring_TQU
@@ -23,9 +25,9 @@ program idl_ball2almn
   REAL(DP), DIMENSION(:,:), ALLOCATABLE :: map_TQU
 
   REAL(DP), DIMENSION(1:2) :: zbounds
-  REAL(DP) :: fwhm,sigma
-  CHARACTER(LEN=128) :: healpixdir,dir,str
-  CHARACTER(LEN=200) :: fname
+  REAL(DP) :: fwhm,sigma,norm
+  CHARACTER(LEN=128) :: healpixdir,tempdir,str,finext
+  CHARACTER(LEN=200) :: fname,parfile,inputfilename,outputfilename
 
 
   INTEGER(I4B) :: ierr,ntasks,unit,me
@@ -44,6 +46,12 @@ program idl_ball2almn
   !type(planck_fft2_plan) :: plan_ball2beta
   !call make_fft2_plan (plan_ball2beta,length,fft2_forward)
 
+  if (iargc() > 0) then
+     call getarg(1,parfile)
+  else
+     stop 'usage: box2ball box_filename.dat'
+  endif
+
 
   CALL MPI_INIT(ierr)
 
@@ -58,25 +66,14 @@ program idl_ball2almn
 
 
   call getEnvironment("HEALPIX",healpixdir)
-  dir='large/'!trim(adjustl(healpixdir))//'/src/idl/almtools/'
 
-  open(12,file=trim(adjustl(dir))//'params_ball2almn.unf',status='old',form='unformatted')
-  read(12) large 
-  read(12) nside
-  read(12) polar
-  read(12) lmax
-  read(12) nnmax
-  read(12) nshell
-  close(12)
-
-  nnmax=nshell
-
+  !read parameter file
+  call ball2almn(parfile,nside, polar, nnmax, nshell,ifirstshell,ilastshell,iwidth,norm,balltype,inputfile,outputfile,finext,tempdir)
 
   !check correctness of input parameters
   if (me == 0) then
      print*, '**************** ball2almn.f90 *****'
      print*, '---------------------------'
-     print*, 'large = ', large 
      print*, 'nside = ',nside 
      print*, 'polar = ',polar 
      print*, 'lmax = ',lmax
@@ -103,7 +100,7 @@ program idl_ball2almn
   if(mod(nshell,ntasks).ne.0) nmap_pp(1:mod(nshell,ntasks)-1)=nmap_pp(1:mod(nshell,ntasks)-1)+1
   nct_pp = nmap_pp*(lmax+1)*(lmax+1) !data count per each processor
 
-  ALLOCATE(map_TQU(0:npix-1,0:nshell-1))
+
 
   ALLOCATE(w8ring_TQU(1:2*nside,1:1+2*polar))
   w8ring_TQU=1d0
@@ -112,9 +109,6 @@ program idl_ball2almn
 
   zbounds = (/ -1.0_dp, 1.0_dp /)
 
-  open(12,file=trim(adjustl(dir))//'ballmap.unf',status='old',form='unformatted')
-  read(12) map_TQU
-  close(12)
 
   sn=nmap_pp(me)
   allocate(alm_TGC_rpp(0:sn-1,0:lmax,0:lmax))
@@ -128,6 +122,9 @@ program idl_ball2almn
      print*, 'calling map2alm in MPI distributed loop'
   endif
 
+
+  ALLOCATE(map_TQU(0:npix-1,0:nmap_pp(me)-1))
+
   !in each processor loop over radial shells, and do harmonic expansion
   do ii=0,nmap_pp(me)-1
 
@@ -137,11 +134,16 @@ program idl_ball2almn
         i=ii
      endif
 
+     write(str,*)i
+     open(12,file=trim(adjustl(inputfile))//trim(adjustl(str))//'.'//trim(adjustl(finext)),status='old',form='unformatted')
+     read(12) map_TQU
+     close(12)
+
      !print*, 'nshell = , max(map) =  ', i, maxval(map_TQU(:,1,i))
      !if (i == 0) then !the 0th layer is an empty map
      !   alm_TGC=0.
      !else
-    if (count( map_TQU(:,i)>1e-13 )>10)  call map2alm_iterative(nside, lmax, lmax, 4, map_TQU(:,i:i), alm_TGC, zbounds, w8ring_TQU)
+    if (count( map_TQU(:,i)>1e-13 )>10)  call map2alm_iterative(nside, lmax, lmax, 4, map_TQU(:,ii:ii), alm_TGC, zbounds, w8ring_TQU)
      !endif
      alm_TGC_rpp(ii,:,:) = alm_TGC(1,:,:)
 
@@ -206,13 +208,15 @@ program idl_ball2almn
 
      !damp alm(r) to a file
      
-     fname = trim(adjustl(dir))//'almr.unf' 
-     print*, '******* saving alm_r array to **'
-     print*, trim(fname)
-     print*, '---------------------------'
-     open(unit,file=trim(fname),status='unknown',form='unformatted')
-     write(unit) alm_TGC_r
-     close(unit)
+     if (tempdir ~= '') then
+        fname = trim(adjustl(tempdir))//'almr.unf' 
+        print*, '******* saving alm_r array to **'
+        print*, trim(fname)
+        print*, '---------------------------'
+        open(unit,file=trim(fname),status='unknown',form='unformatted')
+        write(unit) alm_TGC_r
+        close(unit)
+     endif
 
      print*, 'lmax, nshell = ',lmax,nshell
      !print*, 'size(almn), shape(almn) = ',size(alm_TGC), shape(alm_TGC)
@@ -235,7 +239,7 @@ program idl_ball2almn
 
 
 
-     fname = trim(adjustl(dir))//'almn.unf'
+     fname = trim(adjustl(outputfile))
      print*, '******* saving almn array to **'
      print*, trim(fname)
      print*, 'size(almn), shape(almn) = ',size(almn_TGC), shape(almn_TGC)

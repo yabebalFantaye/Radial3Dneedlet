@@ -1,331 +1,272 @@
 # -*- Makefile -*-
 # ------------------------------ variables for F90 --------------------------
+
+# Compiler:
+F90C  = mpif90
+CC  = mpicc
+F90=ifort
+
+
+# Link libraries and options
+FFLAGS  = -O3 -cm -w -Wall -vec_report0 -sox -openmp -openmp_report0 -I$(HEALPIX)/include 
+FFLAGS_PAR = -03 -heap-arrays 16 -I$(HEALPIX)/include  -I$(CFITSIO)/include 
+CFLAGS	=-O2 -fomit-frame-pointer -fforce-addr -fforce-mem
+LDFLAGS	= -L$(HEALPIX)/lib -L$(CFITSIO)/lib -lhealpix -lgif -lcfitsio 
+
+#--------------------- case NERSC -------
+ifeq ($(TARGET),nersc) 
+F90C =  ftn #mpif90	
+F90 = ftn #mpif90
+
+# Compile-time options
+HEALPIX=$(HEALPIX3)
+# F90 options  ## -O3 -xAVX -mavx -heap-arrays
+FFLAGS =  -openmp -I$(HEALPIX)/include  -I$(CFITSIO)/include 
+# CC options:
+CFLAGS	= #-O2 -fomit-frame-pointer -fforce-addr -fforce-mem
+# Link libraries and options
+LDFLAGS	= -L$(HEALPIX)/lib -L$(CFITSIO)/lib -lhealpix -lgif -lcfitsio 
+LAPACK  = -I$(MKLROOT)/include -mkl
+LAPACKLIB = $(LAPACK) 
+endif
+
+
+FC=$(F90C)
+
+
+# Set up appropriate suffix list
+.SUFFIXES:
+.SUFFIXES: .o .f .for .f90 .c
+
 RM	= rm -f
 
-#HEALPIX	= ${HEALPIX}
-F90_BINDIR	= ${HEALPIX}/bin
-F90_INCDIR	=  ${HEALPIX}/include
-F90_LIBDIR	=  ${HEALPIX}/lib
-FITSDIR	= ${CFITSIO}/lib
-LIBFITS	= cfitsio
 
-F90_FFTSRC	= healpix_fft
-F90_ADDUS	=  
-
-F90_PARALL  =
-
-F90_FC	= mpif90
-F90_FFLAGS	= -O3 -I$(F90_INCDIR) -cm -w -vec_report0 -sox -openmp -openmp_report0 -I../ 
-F90_CC	= mpicc
-F90_CFLAGS	= -O
-F90_LDFLAGS	= -L$(F90_LIBDIR) -L$(FITSDIR) -lhealpix -lhpxgif -l$(LIBFITS) -Wl,-R$(FITSDIR)
-F90_AR        = ar -rsv
-F90_PPFLAGS	= 
-F90_I8FLAG  = -i8
-
-F90_PGFLAG  = 
-F90_PGLIBS  = 
-
-F90_MOD	= mod
-
-F90_OS	= Linux
-
-
-FC=$(F90_FC) 
-FFLAGS=$(F90_FFLAGS) 
-LDFLAGS=$(F90_LDFLAGS) 
-CC=$(F90_CC) 
-CFLAGS=$(F90_CFLAGS) 
-MOD=$(F90_MOD) 
-OS=$(F90_OS) 
-
-LIBDIR=$(F90_LIBDIR)
-INCDIR=$(F90_INCDIR) 
-BINDIR=$(F90_BINDIR) 
-FFTSRC=$(F90_FFTSRC) 
-ADDUS=$(F90_ADDUS) 
-PARALL=$(F90_PARALL) 
-AR=$(F90_AR) 
-PPFLAGS=$(F90_PPFLAGS) 
-PGFLAG=$(F90_PGFLAG) 
-PGLIBS=$(F90_PGLIBS) 
-FI8FLAG=$(F90_I8FLAG)
-
-
-# ------------------------------ variables for C --------------------------
-#
-# Compiler Options
-C_CC  = 
-C_PIC = 
-C_OPT = 
-#
-# Where you want to install the library and header file
-C_LIBDIR = 
-C_INCDIR = 
-C_AR     = 
-#
-# Where you have the cfitsio installation
-C_CFITSIO_INCDIR = 
-C_CFITSIO_LIBDIR = 
-C_WLRPATH = 
-#
-# Libraries to install (static, shared, dynamic)
-C_ALL =
-
-CC=$(C_CC) 
-PIC=$(C_PIC) 
-OPT=$(C_OPT) 
-LIBDIR=$(C_LIBDIR) 
-INCDIR=$(C_INCDIR) 
-AR=$(C_AR) 
-CFITSIO_INCDIR=$(C_CFITSIO_INCDIR) 
-CFITSIO_LIBDIR=$(C_CFITSIO_LIBDIR) 
-WLRPATH=$(C_WLRPATH)
-
-# ------------------------------ variables for C++ --------------------------
+# ------------------------------ variables --------------------------
 
 #VPATH	= $(HEALPIX)/src/idl/almball
 VPATH=../../pro
 
 
+OBJ=../common_module.f90
 
 exectest	= $(VPATH)/test_filon_quad
 srctest	= test_filon_quad.f90
-objtest 	= wav_ball_mod.o test_filon_quad.o fft.o ../common_module.o
+objtest 	= wav_ball_mod.o test_filon_quad.o fft.o 
 inctest     = 
 
 #ball2almn and almn2ball cases
 exec1	= $(VPATH)/idl_almn2ball
 src1	= idl_almn2ball.f90
-obj1 	= wav_ball_mod.o idl_almn2ball.o fft.o ../common_module.o
+obj1 	= wav_ball_mod.o idl_almn2ball.o fft.o
 inc1     = 
 
 exec2	= $(VPATH)/idl_ball2almn
 src2	= idl_ball2almn.f90
-obj2 	= wav_ball_mod.o idl_ball2almn.o fft.o ../common_module.o
+obj2 	= wav_ball_mod.o idl_ball2almn.o fft.o
 inc2     = 
 
 
 #almn2beta and beta2almn cases
 exec3	= $(VPATH)/idl_almn2beta
 src3	= idl_almn2beta.f90
-obj3 	= wav_ball_mod.o idl_almn2beta.o fft.o ../common_module.o
+obj3 	= wav_ball_mod.o idl_almn2beta.o fft.o
 inc3    = 
 
 exec3b	= $(VPATH)/idl_almn2beta_par
 src3b	= idl_almn2beta_par.f90
-obj3b	= wav_ball_mod.o idl_almn2beta_par.o fft.o ../common_module.o
+obj3b	= wav_ball_mod.o idl_almn2beta_par.o fft.o
 inc3b	=
 
 #idl_ball2beta_par and idl_beta2ball_par cases
 exec4c	= $(VPATH)/idl_ball2beta_par
 src4c	= idl_ball2beta_par.f90
-obj4c 	= wav_ball_mod.o idl_ball2beta_par.o fft.o ../common_module.o
+obj4c 	= wav_ball_mod.o idl_ball2beta_par.o fft.o
 inc4c    = 
 
 exec4b	= $(VPATH)/idl_beta2ball_par
 src4b	= idl_beta2ball_par.f90
-obj4b 	= wav_ball_mod.o idl_beta2ball_par.o fft.o ../common_module.o
+obj4b 	= wav_ball_mod.o idl_beta2ball_par.o fft.o
 inc4b    = 
 
 #speed test healpix and seedlet
 execS1	= $(VPATH)/speed_test_bl2bt_bt2bl
 srcS1	= speed_test_bl2bt_bt2bl.f90
-objS1 	= wav_ball_mod.o speed_test_bl2bt_bt2bl.o fft.o ../common_module.o
+objS1 	= wav_ball_mod.o speed_test_bl2bt_bt2bl.o fft.o
 incS1     = 
 
 execS2	= $(VPATH)/speed_test_b2a_a2b
 srcS2	= speed_test_b2a_a2b.f90
-objS2 	= wav_ball_mod.o speed_test_b2a_a2b.o fft.o ../common_module.o
+objS2 	= wav_ball_mod.o speed_test_b2a_a2b.o fft.o
 incS2     = 
 
 execS3	= $(VPATH)/speed_almn2ball_ball2almn
 srcS3	= speed_almn2ball_ball2almn.f90
-objS3 	= wav_ball_mod.o speed_almn2ball_ball2almn.o fft.o ../common_module.o
+objS3 	= wav_ball_mod.o speed_almn2ball_ball2almn.o fft.o
 incS3     = 
 
 execS4	= $(VPATH)/speed_healpix
 srcS4	= speed_healpix.f90
-objS4 	= wav_ball_mod.o speed_healpix.o fft.o ../common_module.o
+objS4 	= wav_ball_mod.o speed_healpix.o fft.o
 incS4     = 
 
 
 #sin cos basis for almn2ball and ball2almn cases
 exec1c	= $(VPATH)/idl_almn2ball_sincos
 src1c	= idl_almn2ball_sincos.f90
-obj1c	= wav_ball_mod.o idl_almn2ball_sincos.o fft.o ../common_module.o
+obj1c	= wav_ball_mod.o idl_almn2ball_sincos.o fft.o
 inc1c   = 
 
 exec2c	= $(VPATH)/idl_ball2almn_sincos
 src2c	= idl_ball2almn_sincos.f90
-obj2c 	= wav_ball_mod.o idl_ball2almn_sincos.o fft.o ../common_module.o
+obj2c 	= wav_ball_mod.o idl_ball2almn_sincos.o fft.o
 inc2c     = 
 #sin cos basis for ball2beta and beta2ball cases
 exec4	= $(VPATH)/idl_ball2beta_sincos
 src4	= idl_ball2beta_sincos.f90
-obj4 	= wav_ball_mod.o idl_ball2beta_sincos.o fft.o ../common_module.o
+obj4 	= wav_ball_mod.o idl_ball2beta_sincos.o fft.o
 inc4    = 
 
 exec4bb	= $(VPATH)/idl_beta2ball_sincos
 src4bb	= idl_beta2ball_sincos.f90
-obj4bb 	= wav_ball_mod.o idl_beta2ball_sincos.o fft.o ../common_module.o
+obj4bb 	= wav_ball_mod.o idl_beta2ball_sincos.o fft.o
 inc4bb    = 
 
 
 #1-dimension cases
 exec1b	= $(VPATH)/idl_an2ball
 src1b	= idl_an2ball.f90
-obj1b 	= wav_ball_mod.o idl_an2ball.o fft.o ../common_module.o
+obj1b 	= wav_ball_mod.o idl_an2ball.o fft.o
 inc1b     = 
 
 exec2b	= $(VPATH)/idl_ball2an
 src2b	= idl_ball2an.f90
-obj2b 	= wav_ball_mod.o idl_ball2an.o fft.o ../common_module.o
+obj2b 	= wav_ball_mod.o idl_ball2an.o fft.o
 inc2b     = 
 
 
 #other cases 
 exec44c	= $(VPATH)/idl_psi_jqk
 src44c	= idl_psi_jqk.f90
-obj44c 	= wav_ball_mod.o idl_psi_jqk.o fft.o ../common_module.o
+obj44c 	= wav_ball_mod.o idl_psi_jqk.o fft.o
 inc44c    = 
 
 exec4d	= $(VPATH)/idl_get_3dneedlet
 src4d	= idl_get_3dneedlet.f90
-obj4d 	= wav_ball_mod.o idl_get_3dneedlet.o fft.o ../common_module.o
+obj4d 	= wav_ball_mod.o idl_get_3dneedlet.o fft.o
 inc4d    = 
 
 exec4cc	= $(VPATH)/idl_ball2ball
 src4cc	= idl_ball2ball.f90
-obj4cc 	= wav_ball_mod.o idl_ball2ball.o fft.o ../common_module.o
+obj4cc 	= wav_ball_mod.o idl_ball2ball.o fft.o
 inc4cc    = 
 
 exec5	= $(VPATH)/idl_get_seedlet
 src5	= idl_get_seedlet.f90
-obj5 	= wav_ball_mod.o idl_get_seedlet.o fft.o ../common_module.o
+obj5 	= wav_ball_mod.o idl_get_seedlet.o fft.o
 inc5    = 
 
 exec6	= $(VPATH)/idl_beta2almn
 src6	= idl_beta2almn.f90
-obj6 	= idl_beta2almn.o ../common_module.o
+obj6 	= idl_beta2almn.o
 inc6    = 
 
 exec6b	= $(VPATH)/idl_beta2almn_par
 src6b	= idl_beta2almn_par.f90
-obj6b 	= idl_beta2almn_par.o ../common_module.o
+obj6b 	= idl_beta2almn_par.o
 inc6b    = 
 
 
-%.o: %.f90 $(incS3)
-	ifort $(FFLAGS) -c $< -o $@
+# Double suffix rules:
+.f90.o .f.o .for.o :
+	$(F90C) $(FFLAGS) -c $(OBJ) $<
+.c.o	:
+	$(CC) $(CFLAGS) -c $(OBJ) $<
 
-%.o: %.f90 $(inctest)
-	$(FC) $(FFLAGS) -c $< -o $@
+# Single suffix rules:
+.f90 .f .for :
+	$(F90C) $(FFLAGS) -o $@ $<
 
-%.o: %.f90 $(inc0)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc1)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc2)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc3)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc4)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc4b)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc5)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc6)
-	$(FC) $(FFLAGS) -c $< -o $@
-
-%.o: %.f90 $(inc6b)
-	$(FC) $(FFLAGS) -c $< -o $@
+.o :
+	$(F90C) $(LDFLAGS) -o $@ $<
 
 #these are for sin and cosine routines
 
-idl_par:  $(exec1) $(exec2) idl_beta2ball_par idl_ball2ball_par 
+idl_par:  $(exec1) $(exec2) idl_beta2ball_par #idl_ball2ball_par
 speed: speed_test_a2b_b2a speed_test_bl2bt_bt2bl
 default: $(exec1c) $(exec2c) $(exec1b) $(exec2b)  ball2beta_sincos beta2ball_sincos get_3dneedlet psi_jqk
 
-$(exectest): $(objtest) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exectest) $(objtest) $(LDFLAGS)
+
+$(exectest): $(OBJ) $(objtest) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exectest) $(OBJ) $(objtest) $(LDFLAGS)
 
 
-$(execS1): $(objS1) #$(LIBDIR)/libhealpix.a
-	ifort $(FFLAGS) -o $(execS1) $(objS1) $(LDFLAGS)
+$(execS1): $(OBJ) $(objS1) #$(LIBDIR)/libhealpix.a
+	ifort $(FFLAGS) -o $(execS1) $(OBJ) $(objS1) $(LDFLAGS)
 
-$(execS2): $(objS2) #$(LIBDIR)/libhealpix.a
-	ifort $(FFLAGS) -o $(execS2) $(objS2) $(LDFLAGS)
+$(execS2): $(OBJ) $(objS2) #$(LIBDIR)/libhealpix.a
+	ifort $(FFLAGS) -o $(execS2) $(OBJ) $(objS2) $(LDFLAGS)
 
-$(execS3): $(objS3) #$(LIBDIR)/libhealpix.a
-	ifort $(FFLAGS) -o $(execS3) $(objS3) $(LDFLAGS)
+$(execS3): $(OBJ) $(objS3) #$(LIBDIR)/libhealpix.a
+	ifort $(FFLAGS) -o $(execS3) $(OBJ) $(objS3) $(LDFLAGS)
 
-$(execS4): $(objS4) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(execS4) $(objS4) $(LDFLAGS)
+$(execS4): $(OBJ) $(objS4) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(execS4) $(OBJ) $(objS4) $(LDFLAGS)
 
 
 
-$(exec1): $(obj1) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec1) $(obj1) $(LDFLAGS)
+$(exec1): $(OBJ) $(obj1) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec1) $(OBJ) $(obj1) $(LDFLAGS)
 
-$(exec2): $(obj2) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec2) $(obj2) $(LDFLAGS)
+$(exec2): $(OBJ) $(obj2) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec2) $(OBJ) $(obj2) $(LDFLAGS)
 
-$(exec1c): $(obj1c) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec1c) $(obj1c) $(LDFLAGS)
+$(exec1c): $(OBJ) $(obj1c) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec1c) $(OBJ) $(obj1c) $(LDFLAGS)
 
-$(exec2c): $(obj2c) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec2c) $(obj2c) $(LDFLAGS)
+$(exec2c): $(OBJ) $(obj2c) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec2c) $(OBJ) $(obj2c) $(LDFLAGS)
 
-$(exec1b): $(obj1b) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec1b) $(obj1b) $(LDFLAGS)
+$(exec1b): $(OBJ) $(obj1b) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec1b) $(OBJ) $(obj1b) $(LDFLAGS)
 
-$(exec2b): $(obj2b) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec2b) $(obj2b) $(LDFLAGS)
+$(exec2b): $(OBJ) $(obj2b) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec2b) $(OBJ) $(obj2b) $(LDFLAGS)
 
-$(exec3): $(obj3) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec3) $(obj3) $(LDFLAGS)
+$(exec3): $(OBJ) $(obj3) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec3) $(OBJ) $(obj3) $(LDFLAGS)
 
-$(exec3b): $(obj3b) 
-	$(FC) $(FFLAGS) -o $(exec3b) $(obj3b) $(LDFLAGS)
+$(exec3b): $(OBJ) $(obj3b) 
+	$(FC) $(FFLAGS) -o $(exec3b) $(OBJ) $(obj3b) $(LDFLAGS)
 
-$(exec4): $(obj4) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec4) $(obj4) $(LDFLAGS)
+$(exec4): $(OBJ) $(obj4) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec4) $(OBJ) $(obj4) $(LDFLAGS)
 
-$(exec4b): $(obj4b) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec4b) $(obj4b) $(LDFLAGS)
+$(exec4b): $(OBJ) $(obj4b) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec4b) $(OBJ) $(obj4b) $(LDFLAGS)
 
-$(exec4bb): $(obj4bb) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec4bb) $(obj4bb) $(LDFLAGS)
+$(exec4bb): $(OBJ) $(obj4bb) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec4bb) $(OBJ) $(obj4bb) $(LDFLAGS)
 
-$(exec4c): $(obj4c) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec4c) $(obj4c) $(LDFLAGS)
+$(exec4c): $(OBJ) $(obj4c) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec4c) $(OBJ) $(obj4c) $(LDFLAGS)
 
-$(exec44c): $(obj44c) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec44c) $(obj44c) $(LDFLAGS)
+$(exec44c): $(OBJ) $(obj44c) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec44c) $(OBJ) $(obj44c) $(LDFLAGS)
 
-$(exec4d): $(obj4d) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec4d) $(obj4d) $(LDFLAGS)
+$(exec4d): $(OBJ) $(obj4d) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec4d) $(OBJ) $(obj4d) $(LDFLAGS)
 
-$(exec4cc): $(obj4cc) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec4cc) $(obj4cc) $(LDFLAGS)
+$(exec4cc): $(OBJ) $(obj4cc) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec4cc) $(OBJ) $(obj4cc) $(LDFLAGS)
 
-$(exec5): $(obj5) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec5) $(obj5) $(LDFLAGS)
+$(exec5): $(OBJ) $(obj5) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec5) $(OBJ) $(obj5) $(LDFLAGS)
 
-$(exec6): $(obj6) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec6) $(obj6) $(LDFLAGS)
+$(exec6): $(OBJ) $(obj6) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec6) $(OBJ) $(obj6) $(LDFLAGS)
 
-$(exec6b): $(obj6b) #$(LIBDIR)/libhealpix.a
-	$(FC) $(FFLAGS) -o $(exec6b) $(obj6b) $(LDFLAGS)
+$(exec6b): $(OBJ) $(obj6b) #$(LIBDIR)/libhealpix.a
+	$(FC) $(FFLAGS) -o $(exec6b) $(OBJ) $(obj6b) $(LDFLAGS)
 
 clean:
 	$(RM) *.o *.$(F90_MOD) lib*.a *.pc *.pcl *.il 
