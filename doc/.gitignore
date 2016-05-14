@@ -1,0 +1,9 @@
+*~
+*.o
+*.mod
+*.pyc
+*.unf
+garbage
+jobs
+output
+bin/*
